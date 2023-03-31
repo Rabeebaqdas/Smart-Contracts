@@ -1340,6 +1340,7 @@ contract Musically is ERC721Enumerable, Ownable {
     function setBaseURI(string memory baseURI) public onlyOwner {
         baseTokenURI = baseURI;
     }
+///////////////////////////////////Getter Function/////////////////////////////
     
     function _baseURI() internal view override returns (string memory) {
         return baseTokenURI;
