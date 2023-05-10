@@ -11,13 +11,16 @@ error ArbitrumNFT_TransferFailed();
 error ArbitrumNFT_PriceNotMatched(uint256 price);
 error ArbitrumNFT_SimilarToCurrentPrice(uint256 currentPrice);
 error ArbitrumNFT_SimilarToCurrentBaseURI(string currentBaseURI);
+error ArbitrumNFT_InvalidOption(uint256 a, uint256 b, uint256 c);
 
-contract MYHERBS is ERC721Enumerable,Ownable {
+contract MYHERBX is ERC721Enumerable,Ownable {
 
 /////////////////////////State Varaibles///////////////////////////////////
     AggregatorV3Interface internal priceFeed;
     string private baseURI;
-    uint256 public pricePerNFT;
+    uint256 public priceOfCat1;
+    uint256 public priceOfCat2;
+    uint256 public priceOfCat3;
     
 /////////////////////////Mapping///////////////////////////////////
     mapping(uint256 => string) private _tokenURIs;
@@ -28,11 +31,13 @@ contract MYHERBS is ERC721Enumerable,Ownable {
         uint256 indexed tokenId
      );
 
-    constructor(string memory _uri, uint256 _initialPrice)ERC721("MYHERBS.COM", "ARBI"){  
+    constructor(string memory _uri, uint256 _priceOfCat1,uint256 _priceOfCat2,uint256 _priceOfCat3)ERC721("MYHERBX.COM", "Herbx"){  
         baseURI = _uri; 
-        pricePerNFT = _initialPrice;
+        priceOfCat1 = _priceOfCat1;
+        priceOfCat2 = _priceOfCat2;
+        priceOfCat3 = _priceOfCat3;
         priceFeed = AggregatorV3Interface(
-            0x143db3CEEfbdfe5631aDD3E50f7614B6ba708BA7            // Provide the address here
+            0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526            // This is BNB / USD address from BNB tstnet
         );
     }
 
@@ -43,10 +48,23 @@ contract MYHERBS is ERC721Enumerable,Ownable {
         _tokenURIs[tokenId] = _tokenURI;
     } 
 
-     function buyNFT(string calldata data) public payable {
-         if(msg.value < getPrice()) {
-             revert ArbitrumNFT_PriceNotMatched(getPrice());
+     function buyNFT(string calldata data, uint256 _opt) public payable {
+         if(_opt == 1) {
+         if(msg.value < getPrice(priceOfCat1)) {
+             revert ArbitrumNFT_PriceNotMatched(getPrice(priceOfCat1));
          }
+         }else if(_opt == 2) {
+         if(msg.value < getPrice(priceOfCat2)) {
+             revert ArbitrumNFT_PriceNotMatched(getPrice(priceOfCat2));
+         }
+         }else if(_opt == 3) {
+         if(msg.value < getPrice(priceOfCat3)) {
+             revert ArbitrumNFT_PriceNotMatched(getPrice(priceOfCat3));
+         }
+         }else {
+            revert ArbitrumNFT_InvalidOption(1,2,3);
+         }
+
         uint256 mintIndex = totalSupply() + 10001;
         _safeMint(_msgSender(), mintIndex);
         _setTokenURI(mintIndex, data);
@@ -54,14 +72,41 @@ contract MYHERBS is ERC721Enumerable,Ownable {
         emit NFTMinted(_msgSender(),mintIndex);
     }
 
+        function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+        internal
+        override
+    {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
 
 /////////////////////////OnlyOwner Functions///////////////////////////////////
 
-        function setPrice(uint256 _price) public onlyOwner {
-        if(pricePerNFT == _price) {
-            revert ArbitrumNFT_SimilarToCurrentPrice(pricePerNFT);
+        function setPrice(uint256 _price, uint256 _opt) public onlyOwner {
+            if(_opt == 1) {
+
+        if(priceOfCat1 == _price) {
+            revert ArbitrumNFT_SimilarToCurrentPrice(priceOfCat1);
         }
-        pricePerNFT = _price;
+
+        priceOfCat1 = _price;
+
+        }else if(_opt == 2){
+
+        if(priceOfCat2 == _price) {
+            revert ArbitrumNFT_SimilarToCurrentPrice(priceOfCat2);
+        }
+        priceOfCat2 = _price;
+
+        }else if(_opt == 3) {
+
+        if(priceOfCat3 == _price) {
+            revert ArbitrumNFT_SimilarToCurrentPrice(priceOfCat3);
+        }
+        priceOfCat3 = _price;
+
+        }else {
+            revert ArbitrumNFT_InvalidOption(1,2,3);
+        }
     }
 
     function setBaseURI(string memory _uri) public onlyOwner {
@@ -90,9 +135,9 @@ contract MYHERBS is ERC721Enumerable,Ownable {
          return price;
     }
 
-    function getPrice() public view returns (uint256) {
+    function getPrice(uint256 _price) public view returns (uint256) {
         uint256 temp = uint256(getLatestPrice());
-        uint256 price= (((pricePerNFT * 10 ** 18) / temp) * 10 ** 8);
+        uint256 price= (((_price * 10 ** 18) / temp) * 10 ** 8);
         return price;
     }
 
@@ -116,5 +161,4 @@ contract MYHERBS is ERC721Enumerable,Ownable {
      function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }
-    
 }
