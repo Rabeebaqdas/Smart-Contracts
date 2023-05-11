@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/Ownable.sol";    
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";  
+import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 
 error ArbitrumNFT_OnlyOwnerCanCall();
 error ArbitrumNFT_NotEnoughBalanceToWithdraw();
@@ -13,7 +14,7 @@ error ArbitrumNFT_SimilarToCurrentPrice(uint256 currentPrice);
 error ArbitrumNFT_SimilarToCurrentBaseURI(string currentBaseURI);
 error ArbitrumNFT_InvalidOption(uint256 a, uint256 b, uint256 c);
 
-contract MYHERBX is ERC721Enumerable,Ownable {
+contract MYHERBX is ERC721Enumerable,IERC2981,Ownable {
 
 /////////////////////////State Varaibles///////////////////////////////////
     AggregatorV3Interface internal priceFeed;
@@ -21,7 +22,8 @@ contract MYHERBX is ERC721Enumerable,Ownable {
     uint256 public priceOfCat1;
     uint256 public priceOfCat2;
     uint256 public priceOfCat3;
-    
+    uint256 public royalty = 100;
+
 /////////////////////////Mapping///////////////////////////////////
     mapping(uint256 => string) private _tokenURIs;
 
@@ -37,7 +39,7 @@ contract MYHERBX is ERC721Enumerable,Ownable {
         priceOfCat2 = _priceOfCat2;
         priceOfCat3 = _priceOfCat3;
         priceFeed = AggregatorV3Interface(
-            0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526            // This is BNB / USD address from BNB tstnet
+            0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526            // Provide the address here
         );
     }
 
@@ -109,6 +111,10 @@ contract MYHERBX is ERC721Enumerable,Ownable {
         }
     }
 
+        function changeRoyalty(uint256 _royalty) public onlyOwner {
+        royalty = _royalty;
+    } 
+
     function setBaseURI(string memory _uri) public onlyOwner {
         if(keccak256(abi.encodePacked(baseURI)) == keccak256(abi.encodePacked(_uri))) {
             revert ArbitrumNFT_SimilarToCurrentBaseURI(baseURI);
@@ -154,11 +160,23 @@ contract MYHERBX is ERC721Enumerable,Ownable {
         return super.tokenURI(tokenId);
     } 
 
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool){
-        return super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override (ERC721Enumerable, IERC165) returns (bool){
+        return (interfaceId == type(IERC2981).interfaceId || super.supportsInterface(interfaceId));
     }
 
      function _baseURI() internal view override returns (string memory) {
         return baseURI;
+    }
+
+    function royaltyInfo(
+        uint256, /*_tokenId*/
+        uint256 _salePrice
+    )
+        external
+        view
+        override(IERC2981)
+        returns (address Receiver, uint256 royaltyAmount)
+    {
+        return (owner(), (_salePrice * royalty) / 1000); //100*10 = 1000
     }
 }
