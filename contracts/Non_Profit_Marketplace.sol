@@ -96,6 +96,7 @@ error NftMarketplace__NoProceeds();
 error NftMarketplace__TransferFailed();
 error NftMarketplace__ItemIsInAuction();
 error NftMarketplace__OwnerCantBuyHisItem();
+NftMarketplace__SellerIsNoLongerOwner();
 
 contract MarketPlace is ReentrancyGuard, Ownable {
 ///////////////////////////////////Struct////////////////////////////////////
@@ -266,12 +267,18 @@ function mint(uint256 _count) external onlyOwner {
 
    function buyItems(address nftAddress, uint256 tokenId) external payable isListed(nftAddress, tokenId) nonReentrant {
         Listing memory listing = s_listings[nftAddress][tokenId];
+        
+        if(listing.seller != nft.ownerOf(tokenId)) {
+        revert NftMarketplace__SellerIsNoLongerOwner();
+        }
+        
         if(listing.auction) {
             revert NftMarketplace__ItemIsInAuction();
         }
         if(msg.sender == listing.seller) {
             revert NftMarketplace__OwnerCantBuyHisItem();
         }
+        
         
         if (msg.value < listing.price) {
             revert NftMarketplace__PriceNotMet(
