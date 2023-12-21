@@ -3,7 +3,6 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 /// Company: Decrypted Labs
 /// @title Decrypted Labs ERC20 Token Contract
@@ -39,8 +38,6 @@ interface IUniswapV2Router02 {
             uint256 amountETH,
             uint256 liquidity
         );
-
-
 
     function swapExactTokensForETHSupportingFeeOnTransferTokens(
         uint256 amountIn,
@@ -138,8 +135,9 @@ receive() external payable {}
     ) ERC20(_name, _symbol) Ownable(_msgSender()) {
         _helperFactory.createPair(address(this), WETH_ADDRESS);
         _isExcludedFromFees[owner()] = true;
-        _isExcludedFromFees[address(this)] = true;
+        _isExcludedFromFees[address(0)] = true;             
         _isExcludedFromFees[_adminWallet] = true;
+        _isExcludedFromFees[address(this)] = true;  
         _mint(_msgSender(), 2100000 * 10 ** 18);  // 21 million tokens         
         adminWallet = _adminWallet;
         buyTax = _buyTax;
@@ -204,7 +202,7 @@ receive() external payable {}
     /// @param to Address receiving the tokens
     /// @param value Amount of tokens being transferred
     function _update(address from, address to, uint256 value) internal override {
-        if(!tradingEnabled && from != address(0)) revert TradingNotEnabledYet();
+        if(!tradingEnabled && !_isExcludedFromFees[from]) revert TradingNotEnabledYet();
         if(value > maxTxAmount && !_isExcludedFromFees[from] && !_isExcludedFromFees[to]) revert ExceededMaxTxLimit(value);
         address pairAddr = _helperFactory.getPair(address(this), WETH_ADDRESS);
         uint256 taxAmount;
